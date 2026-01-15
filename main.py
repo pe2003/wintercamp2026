@@ -9,7 +9,7 @@ from oauth2client.service_account import ServiceAccountCredentials
 # ─── НАСТРОЙКИ ───────────────────────────────────────────────
 BOT_TOKEN = "8504812197:AAGId9ij2-85veGUvtQNqbMB5uUWDOHn-Po"
 SHEET_ID = "1WY0M1uS4VEOXNOtD2bQoVyRo_v12IK1jpbkefQR8YCg"
-CREDENTIALS_FILE = "wintercamprestart-83c93f7f7be1.json"
+CREDENTIALS_FILE = "wintercamprestart-793d3565aa2e.json"
 
 COLORS = {
     1: "#ADD8E6",   # синий
