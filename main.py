@@ -76,8 +76,13 @@ async def cmd_start(message: types.Message):
 
 @dp.message()
 async def handle_message(message: types.Message):
-    user_id = message.from_user.id
-    username = message.from_user.username
+    # Если сообщение переслано — берём данные оригинального отправителя
+    if message.forward_from:
+        user_id = message.forward_from.id
+        username = message.forward_from.username
+    else:
+        user_id = message.from_user.id
+        username = message.from_user.username
 
     if user_id in user_to_row:
         row = user_to_row[user_id]
