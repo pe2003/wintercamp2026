@@ -1,0 +1,13 @@
+{
+  "type": "service_account",
+  "project_id": "wintercamprestart",
+  "private_key_id": "83c93f7f7be1b22bc373853d68adfbd8337b0d4f",
+  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQC+l0kgRRRtcIGn\nwWTjVXVNVLMGzajS4FUwH9iYM6xqgFs3PxGL7C7QnxxJVcPJSLyoipwVrNuvLOGn\n3GrmMBHlX1F4s33OGXH1aNKxprPf1LFBmB2svHG8PW7NdA2tzcyainPGRxk21yUP\n10wMcnXX0nJ4nqpGsi9sBfo3I4eAP3fKm6YPM6uHGH6O+7v7xBt9jTHusXjRGN1U\nZBwqkUBq8wMMweFiV8rWr9bNzreB+2h3eL794ZpxM6sUvS7iKExDpNj6Lx3YTouI\nxyUvwqv6fQYXeYin9lXNPnOBvkM2j1Np7yqeNI7ZtMRvrN2owzYKQ32YtV8IkbLv\nADCaeP5lAgMBAAECggEARQNdDF1XR0Ws/UTPNm50elsINJd14V4wGqv9byeO8EWo\nQfoJbYRJc2uZ/4gZzCIVhmYinMqqBeWXlIQBBXc0k70PMEi2blHSbQ3W9VMq4QsQ\nYHMnk6vs9z+7hpPWfDAAPZmS0KJgI/aFyhWoyP0NZOgkYT7643yUJWaIszyfTTWM\nqTON4j6GDvMwMSaz8lyKxhHIpMbPiovGyua9tsQrBxiWeJRfmHlt0Cp/C/UR77aS\nidvFUD90dPBULT+fEB1ISfEhHwo9n2Pj2XiVcH2vKAQzOcjQhuNL5ehrAsBVe4SQ\n7l1RwBxPugKFe0e2olM2O1xnY7qM/Bt/nZmlfzs7pQKBgQD+SROIchgCE4HDcmYb\nusb6pTjVrB3jAxM0ZLiD/CyEq0cncbCJ4b+Pgd7iAuqaAved/hIhzIPyjCCV2A8O\nWlFwc+t/O7gLbFn4u6jWwd+D987VdnCk8LXZe+1oAbwJKmxt7HQiB60CyFSB7EBO\nO7TkFG+Z4CiCbFLkgmFbnMnX2wKBgQC/4EQRFKmRuXqVp02V4uTuKIz8y3SGOUIL\njIbVpLO+a9LZS55xAXv/YNoRxhxlKQ3Mj/cRkatGkKc9AS2W+GSlbcdzAbYCpLmQ\nFDFsRFJLMSZDjPVnXuHIpfldR2GIUBj3j2KhfIqiVzvTKohGQ6TjHJooOHhQhAhl\nlCo02cZ2vwKBgFtDHOiOkkFEgQEFcNIo8bsJS2GcmUldVCosr/BmtA+VbT8h1YtW\n4yp9IOIay9okkHw6sIVC4mRNmHBPD/BFyA7E+9M5Oq+W3p+fslQJVtAFQ01nabw4\ny/tXN/hpDvR3Ll0xTOjdumFSRsouYVHyqdRl5TvjsIZGnGV4ybpYhjSbAoGAWcnM\nkGGm6DZvktBzkgxXLMt1Dmb25EivC1B7WEZ2hklWpbCpOCCFsf/UjDS03PHVL0C/\nUU1lZOQUHowKlXcvQeqZRswqLBqBa1bHue5OxDj/uuSfgfv4lDh29JuOnIc+57oF\nYaQyC73elPZ2Rssowc6EpQWn56WheEdZaNnv8WkCgYEA9UleHSZf/3Mncs/IuFF9\nyQnHv/63eUVi81VJcrMIW6+Kf7g8kt9XQE9YlUoAsX8xSn/qoaF/gl2HIIJvxTNj\nC0ASe/ex5F3iay9WTxkgIiTGKGEzYZ2dL07sYRhBqshA72zeJLDfSznapZ8ePCka\nYfTHGVBDAyuxAv/ZfvyT+qM=\n-----END PRIVATE KEY-----\n",
+  "client_email": "ilyacamp@wintercamprestart.iam.gserviceaccount.com",
+  "client_id": "116768638409773034758",
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://oauth2.googleapis.com/token",
+  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/ilyacamp%40wintercamprestart.iam.gserviceaccount.com",
+  "universe_domain": "googleapis.com"
+}
