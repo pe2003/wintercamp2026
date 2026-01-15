@@ -1,5 +1,8 @@
 import asyncio
 import logging
+import os
+import json
+import base64
 from aiogram import Bot, Dispatcher, types
 from aiogram.filters import Command
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
@@ -9,19 +12,19 @@ from oauth2client.service_account import ServiceAccountCredentials
 # ─── НАСТРОЙКИ ───────────────────────────────────────────────
 BOT_TOKEN = "8504812197:AAGId9ij2-85veGUvtQNqbMB5uUWDOHn-Po"
 SHEET_ID = "1WY0M1uS4VEOXNOtD2bQoVyRo_v12IK1jpbkefQR8YCg"
-CREDENTIALS_FILE = "wintercamprestart-793d3565aa2e.json"
 
-COLORS = {
-    1: "#ADD8E6",   # синий
-    2: "#FFA500",   # оранжевый
-    3: "#90EE90"    # зелёный
-}
+CREDENTIALS_BASE64 = os.getenv("GOOGLE_CREDENTIALS_BASE64")
+if not CREDENTIALS_BASE64:
+    raise ValueError("GOOGLE_CREDENTIALS_BASE64 не установлен в переменных окружения")
+
+json_str = base64.b64decode(CREDENTIALS_BASE64).decode("utf-8")
+creds_dict = json.loads(json_str)
 
 scope = [
     "https://spreadsheets.google.com/feeds",
     "https://www.googleapis.com/auth/drive"
 ]
-creds = ServiceAccountCredentials.from_json_keyfile_name(CREDENTIALS_FILE, scope)
+creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
 client = gspread.authorize(creds)
 sheet = client.open_by_key(SHEET_ID).sheet1
 
@@ -39,21 +42,25 @@ def find_row_by_fio(fio: str) -> int | None:
     search_set = normalize_fio(fio)
     if len(search_set) < 2:
         return None
-
     values = sheet.get_all_values()
     for i, row in enumerate(values, 1):
         if len(row) > 1:
-            cell = row[1]  # столбец B — ФИО
+            cell = row[1]
             cell_set = normalize_fio(cell)
             if len(search_set & cell_set) >= 2:
                 return i
     return None
 
 def save_user_info(row: int, user_id: int, username: str | None):
-    sheet.update_cell(row, 7, user_id)                    # G — Telegram ID
-    sheet.update_cell(row, 8, f"@{username}" if username else "")  # H — @username
+    sheet.update_cell(row, 7, user_id)
+    sheet.update_cell(row, 8, f"@{username}" if username else "")
 
 async def set_row_color(row: int, stage: int):
+    COLORS = {
+        1: "#ADD8E6",
+        2: "#FFA500",
+        3: "#90EE90"
+    }
     color = COLORS.get(stage)
     if not color or row < 1:
         return
