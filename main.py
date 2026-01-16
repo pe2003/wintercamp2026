@@ -37,7 +37,7 @@ dp = Dispatcher()
 
 user_to_row = {}
 
-# Функции (без изменений)
+# Функции
 def normalize_fio(text: str) -> set:
     words = text.lower().replace(".", " ").replace("-", " ").split()
     return set(w for w in words if w and len(w) > 1)
@@ -94,8 +94,8 @@ async def handle_message(message: types.Message):
 
     kb = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="1 • Прошёл регистрацию", callback_data=f"s1_{row}")],
-        [InlineKeyboardButton(text="2 • Выдал реквизиты",   callback_data=f"s2_{row}")],
-        [InlineKeyboardButton(text="3 • Оплатил",           callback_data=f"s3_{row}")]
+        [InlineKeyboardButton(text="2 • Выдал реквизиты", callback_data=f"s2_{row}")],
+        [InlineKeyboardButton(text="3 • Оплатил", callback_data=f"s3_{row}")]
     ])
 
     await message.answer(text, reply_markup=kb)
@@ -115,10 +115,7 @@ async def process_callback(callback: types.CallbackQuery):
     status = {1: "Синий ✓ регистрация", 2: "Оранжевый ✓ реквизиты", 3: "Зелёный ✓ оплачено"}[stage]
 
     try:
-        await callback.message.edit_text(
-            callback.message.text + f"\n\n→ {status}",
-            reply_markup=None
-        )
+        await callback.message.edit_text(callback.message.text + f"\n\n→ {status}", reply_markup=None)
     except:
         pass
 
@@ -131,7 +128,13 @@ app = FastAPI()
 async def root():
     return {"status": "bot alive"}
 
+@app.post("/webhook")
+async def webhook(request: Request):
+    update = await request.json()
+    update_obj = types.Update.de_json(update, bot)
+    await dp.feed_update(bot, update_obj)
+    return {"status": "ok"}
+
 # Запуск
 if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run("main:app", host="0.0.0.0", port=int(os.getenv("PORT", 10000)))
+    uvicorn.run("main:app", host="0.0.0.0", port=PORT)
