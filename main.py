@@ -8,22 +8,26 @@ from aiogram.filters import Command
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
+from fastapi import FastAPI, Request
+import uvicorn
 
-# ─── НАСТРОЙКИ ───────────────────────────────────────────────
+# Логи
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+# Настройки
 BOT_TOKEN = "8504812197:AAGId9ij2-85veGUvtQNqbMB5uUWDOHn-Po"
 SHEET_ID = "1WY0M1uS4VEOXNOtD2bQoVyRo_v12IK1jpbkefQR8YCg"
+PORT = int(os.getenv("PORT", 10000))
 
 CREDENTIALS_BASE64 = os.getenv("GOOGLE_CREDENTIALS_BASE64")
 if not CREDENTIALS_BASE64:
-    raise ValueError("GOOGLE_CREDENTIALS_BASE64 не установлен в переменных окружения")
+    raise ValueError("GOOGLE_CREDENTIALS_BASE64 не установлен")
 
 json_str = base64.b64decode(CREDENTIALS_BASE64).decode("utf-8")
 creds_dict = json.loads(json_str)
 
-scope = [
-    "https://spreadsheets.google.com/feeds",
-    "https://www.googleapis.com/auth/drive"
-]
+scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
 creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
 client = gspread.authorize(creds)
 sheet = client.open_by_key(SHEET_ID).sheet1
@@ -33,7 +37,7 @@ dp = Dispatcher()
 
 user_to_row = {}
 
-# ─── Функции ─────────────────────────────────────────────────
+# Функции (без изменений)
 def normalize_fio(text: str) -> set:
     words = text.lower().replace(".", " ").replace("-", " ").split()
     return set(w for w in words if w and len(w) > 1)
@@ -56,11 +60,7 @@ def save_user_info(row: int, user_id: int, username: str | None):
     sheet.update_cell(row, 8, f"@{username}" if username else "")
 
 async def set_row_color(row: int, stage: int):
-    COLORS = {
-        1: "#ADD8E6",
-        2: "#FFA500",
-        3: "#90EE90"
-    }
+    COLORS = {1: "#ADD8E6", 2: "#FFA500", 3: "#90EE90"}
     color = COLORS.get(stage)
     if not color or row < 1:
         return
@@ -69,20 +69,15 @@ async def set_row_color(row: int, stage: int):
     b = int(color[5:7], 16) / 255
     sheet.format(f"A{row}:Z{row}", {"backgroundColor": {"red": r, "green": g, "blue": b}})
 
-# ─── Хэндлеры ─────────────────────────────────────────────────
+# Хендлеры
 @dp.message(Command("start"))
 async def cmd_start(message: types.Message):
     await message.answer("Напиши своё ФИО")
 
 @dp.message()
 async def handle_message(message: types.Message):
-    # Если сообщение переслано — берём данные оригинального отправителя
-    if message.forward_from:
-        user_id = message.forward_from.id
-        username = message.forward_from.username
-    else:
-        user_id = message.from_user.id
-        username = message.from_user.username
+    user_id = message.from_user.id
+    username = message.from_user.username
 
     if user_id in user_to_row:
         row = user_to_row[user_id]
@@ -129,22 +124,24 @@ async def process_callback(callback: types.CallbackQuery):
 
     await callback.answer()
 
-# ─── ЗАПУСК ───────────────────────────────────────────────────
-async def main():
-    logging.basicConfig(level=logging.INFO)
-    await dp.start_polling(bot)
+# FastAPI
+app = FastAPI()
 
+@app.get("/")
+async def root():
+    return {"status": "bot alive"}
+
+@app.post("/webhook")
+async def webhook(request: Request):
+    update = await request.json()
+    update_obj = types.Update.de_json(update, bot)
+    await dp.feed_update(bot, update_obj)
+    return {"status": "ok"}
+
+# Запуск
 if __name__ == "__main__":
-    import uvicorn
-    from fastapi import FastAPI
+    import asyncio
+    asyncio.run(dp.start_polling(bot))  # polling-резерв
 
-    app = FastAPI()
-
-    @app.get("/")
-    async def root():
-        return {"status": "bot alive"}
-
-    asyncio.run(dp.start_polling(bot))
-
-    # Запуск сервера (Render требует порт 10000)
-    uvicorn.run(app, host="0.0.0.0", port=10000)
+    # webhook на Render
+    uvicorn.run(app, host="0.0.0.0", port=PORT)
