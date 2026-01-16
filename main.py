@@ -140,8 +140,5 @@ async def webhook(request: Request):
 
 # Запуск
 if __name__ == "__main__":
-    import asyncio
-    asyncio.run(dp.start_polling(bot))  # polling-резерв
-
-    # webhook на Render
-    uvicorn.run(app, host="0.0.0.0", port=PORT)
+    import uvicorn
+    uvicorn.run("main:app", host="0.0.0.0", port=int(os.getenv("PORT", 10000)))
