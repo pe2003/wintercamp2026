@@ -131,13 +131,6 @@ app = FastAPI()
 async def root():
     return {"status": "bot alive"}
 
-@app.post("/webhook")
-async def webhook(request: Request):
-    update = await request.json()
-    update_obj = types.Update.de_json(update, bot)
-    await dp.feed_update(bot, update_obj)
-    return {"status": "ok"}
-
 # Запуск
 if __name__ == "__main__":
     import uvicorn
