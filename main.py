@@ -135,4 +135,16 @@ async def main():
     await dp.start_polling(bot)
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    import uvicorn
+    from fastapi import FastAPI
+
+    app = FastAPI()
+
+    @app.get("/")
+    async def root():
+        return {"status": "bot alive"}
+
+    asyncio.run(dp.start_polling(bot))
+
+    # Запуск сервера (Render требует порт 10000)
+    uvicorn.run(app, host="0.0.0.0", port=10000)
