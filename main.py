@@ -131,7 +131,7 @@ async def root():
 @app.post("/webhook")
 async def webhook(request: Request):
     update = await request.json()
-    update_obj = types.Update.de_json(update, bot)
+    update_obj = types.Update.model_validate(update)
     await dp.feed_update(bot, update_obj)
     return {"status": "ok"}
 
