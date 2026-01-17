@@ -98,8 +98,10 @@ async def stats_handler(message: types.Message):
         f"• Оплатил: {len(unique[3])}"
     )
     await message.answer(text, reply_markup=main_kb)
+    return
 
-    
+@dp.message()
+async def handle_message(message: types.Message):
     target_user = message.forward_origin.sender_user if message.forward_origin and hasattr(message.forward_origin, 'sender_user') else message.from_user
     user_id = target_user.id
     username = target_user.username
