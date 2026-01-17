@@ -39,25 +39,23 @@ user_to_row = {}
 
 def get_stats():
     values = sheet.get_all_values()
-    if not values:
+    if not values or len(values) < 2:
         return 0, 0, 0
 
     total = len(values) - 1  # без заголовка
 
-    issued = 0
-    paid = 0
-
-    for row in values[1:]:  # пропускаем заголовок
+    issued = paid = 0
+    for row in values[1:]:
         if len(row) >= 3:
-            status = row[2].strip()  # предполагаем статус в столбце C
-            if status.lower() in ["выдал реквизиты", "2", "оранжевый"]:
+            status = row[2].strip().lower()  # столбец C (индекс 2)
+            if status in ["выдал реквизиты", "2", "оранжевый"]:
                 issued += 1
-            if status.lower() in ["оплатил", "3", "зелёный", "оплачено"]:
+            if status in ["оплатил", "3", "зелёный", "оплачено"]:
                 paid += 1
 
     return total, issued, paid
 
-# ─── Клавиатура со статистикой ──────────────────────────────────────────────
+# ─── Клавиатура статистики ──────────────────────────────────────────────────
 
 stats_kb = ReplyKeyboardMarkup(
     keyboard=[[KeyboardButton(text="📊 Статистика")]],
@@ -68,97 +66,94 @@ stats_kb = ReplyKeyboardMarkup(
 # ─── Вспомогательные функции ────────────────────────────────────────────────
 
 def normalize_fio(text: str) -> set:
-    if not text:
-        return set()
+    if not text: return set()
     words = text.lower().replace(".", " ").replace("-", " ").split()
     return set(w for w in words if w and len(w) > 1)
 
 def find_row_by_fio(fio: str) -> int | None:
-    if not fio:
-        return None
+    if not fio: return None
     search_set = normalize_fio(fio)
-    if len(search_set) < 2:
-        return None
+    if len(search_set) < 2: return None
 
     values = sheet.get_all_values()
     for i, row in enumerate(values, 1):
         if len(row) > 1:
-            cell = row[1]
-            cell_set = normalize_fio(cell)
+            cell_set = normalize_fio(row[1])
             if len(search_set & cell_set) >= 2:
                 return i
     return None
 
 def save_user_info(row: int, user_id: int, username: str | None):
-    sheet.update_cell(row, 7, str(user_id))
+    sheet.update_cell(row, 7, str(user_id))           # G
     sheet.update_cell(row, 8, f"@{username}" if username else "")
 
 async def set_row_color(row: int, stage: int):
     COLORS = {1: "#ADD8E6", 2: "#FFA500", 3: "#90EE90"}
     color = COLORS.get(stage)
-    if not color or row < 1:
-        return
+    if not color or row < 1: return
 
     r = int(color[1:3], 16) / 255
     g = int(color[3:5], 16) / 255
     b = int(color[5:7], 16) / 255
 
     try:
-        sheet.format(f"A{row}:Z{row}", {
-            "backgroundColor": {"red": r, "green": g, "blue": b}
-        })
+        sheet.format(f"A{row}:Z{row}", {"backgroundColor": {"red": r, "green": g, "blue": b}})
     except Exception as e:
-        logger.error(f"Не удалось закрасить строку {row}: {e}")
+        logger.error(f"Ошибка окрашивания строки {row}: {e}")
+
+# ─── Статусы для записи в таблицу ───────────────────────────────────────────
+
+STATUS_TEXTS = {
+    1: "Прошёл регистрацию",
+    2: "Выдал реквизиты",
+    3: "Оплатил"
+}
 
 # ─── Хендлеры ───────────────────────────────────────────────────────────────
 
 @dp.message(Command("start"))
 async def cmd_start(message: types.Message):
-    await message.answer("Перешли мне сообщение от человека (или напиши ФИО)", reply_markup=stats_kb)
+    await message.answer("Перешли сообщение или напиши ФИО", reply_markup=stats_kb)
 
 @dp.message(lambda m: m.text == "📊 Статистика")
 async def show_stats(message: types.Message):
     total, issued, paid = get_stats()
-    text = f"📊 Статистика:\n\n" \
-           f"Уникальных строк: {total}\n" \
-           f"Выдал реквизиты: {issued}\n" \
-           f"Оплатило: {paid}"
-    await message.answer(text)
+    await message.answer(f"📊 Статистика:\n\n"
+                         f"Уникальных строк: {total}\n"
+                         f"Выдал реквизиты: {issued}\n"
+                         f"Оплатило:         {paid}")
 
 @dp.message()
 async def handle_message(message: types.Message):
-    target_user = None
+    target_user = message.from_user
     is_forward = False
 
     if message.forward_origin:
-        origin = message.forward_origin
-        if isinstance(origin, types.MessageOriginUser):
-            target_user = origin.sender_user
+        if isinstance(message.forward_origin, types.MessageOriginUser):
+            target_user = message.forward_origin.sender_user
             is_forward = True
-        elif isinstance(origin, (types.MessageOriginHiddenUser, types.MessageOriginChannel, types.MessageOriginChat)):
+        else:
             await message.answer("Невозможно получить ID пользователя.")
             return
-
-    if not target_user:
-        target_user = message.from_user
 
     user_id = target_user.id
     username = target_user.username
 
     row = user_to_row.get(user_id)
 
-    if row:
-        text = f"Строка {row} | @{username or 'без ника'}"
-    else:
+    if not row:
         search_text = message.text or message.caption or ""
         row = find_row_by_fio(search_text)
         if row:
             user_to_row[user_id] = row
             save_user_info(row, user_id, username)
-            text = f"Строка {row} | Записал @{username or 'без ника'}"
-        else:
-            await message.answer("Не нашёл подходящую строку по ФИО.")
-            return
+
+    if not row:
+        await message.answer("Не нашёл строку по ФИО.")
+        return
+
+    text = f"Строка {row} | @{username or 'без ника'}"
+    note = " (переслано)" if is_forward else ""
 
     kb = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="1 • Прошёл регистрацию", callback_data=f"s1_{row}")],
@@ -166,12 +161,7 @@ async def handle_message(message: types.Message):
         [InlineKeyboardButton(text="3 • Оплатил",           callback_data=f"s3_{row}")]
     ])
 
-    note = " (переслано)" if is_forward else ""
-    await message.answer(
-        f"{text}{note}\n"
-        f"Пользователь: {user_id}  @{username or 'без ника'}",
-        reply_markup=kb
-    )
+    await message.answer(f"{text}{note}\nПользователь: {user_id}", reply_markup=kb)
 
 @dp.callback_query()
 async def process_callback(callback: types.CallbackQuery):
@@ -181,19 +171,23 @@ async def process_callback(callback: types.CallbackQuery):
 
     stage_str, row_str = callback.data.split("_", 1)
     if not stage_str.startswith("s") or not row_str.isdigit():
-        await callback.answer("Некорректные данные")
+        await callback.answer("Ошибка данных")
         return
 
     stage = int(stage_str[1:])
     row = int(row_str)
 
+    # Записываем текстовый статус в столбец C
+    sheet.update_cell(row, 3, STATUS_TEXTS.get(stage, ""))
+
+    # Меняем цвет
     await set_row_color(row, stage)
 
     status_text = {
         1: "Синий ✓ регистрация",
         2: "Оранжевый ✓ реквизиты",
         3: "Зелёный ✓ оплачено"
-    }.get(stage, "неизвестный статус")
+    }.get(stage, "неизвестно")
 
     try:
         new_text = callback.message.text + f"\n\n→ {status_text}"
@@ -203,7 +197,7 @@ async def process_callback(callback: types.CallbackQuery):
 
     await callback.answer()
 
-# ─── FastAPI + Webhook ──────────────────────────────────────────────────────
+# ─── Webhook ────────────────────────────────────────────────────────────────
 
 app = FastAPI()
 
