@@ -5,17 +5,15 @@ import json
 import base64
 from aiogram import Bot, Dispatcher, types
 from aiogram.filters import Command
-from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, ReplyKeyboardMarkup, KeyboardButton
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
 from fastapi import FastAPI, Request
 import uvicorn
 
-# Логи
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Настройки
 BOT_TOKEN = "8504812197:AAGId9ij2-85veGUvtQNqbMB5uUWDOHn-Po"
 SHEET_ID = "1WY0M1uS4VEOXNOtD2bQoVyRo_v12IK1jpbkefQR8YCg"
 PORT = int(os.getenv("PORT", 10000))
@@ -35,7 +33,37 @@ sheet = client.open_by_key(SHEET_ID).sheet1
 bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher()
 
-user_to_row = {}  # user_id → row
+user_to_row = {}
+
+# ─── Статистика ─────────────────────────────────────────────────────────────
+
+def get_stats():
+    values = sheet.get_all_values()
+    if not values:
+        return 0, 0, 0
+
+    total = len(values) - 1  # без заголовка
+
+    issued = 0
+    paid = 0
+
+    for row in values[1:]:  # пропускаем заголовок
+        if len(row) >= 3:
+            status = row[2].strip()  # предполагаем статус в столбце C
+            if status.lower() in ["выдал реквизиты", "2", "оранжевый"]:
+                issued += 1
+            if status.lower() in ["оплатил", "3", "зелёный", "оплачено"]:
+                paid += 1
+
+    return total, issued, paid
+
+# ─── Клавиатура со статистикой ──────────────────────────────────────────────
+
+stats_kb = ReplyKeyboardMarkup(
+    keyboard=[[KeyboardButton(text="📊 Статистика")]],
+    resize_keyboard=True,
+    one_time_keyboard=False
+)
 
 # ─── Вспомогательные функции ────────────────────────────────────────────────
 
@@ -44,7 +72,6 @@ def normalize_fio(text: str) -> set:
         return set()
     words = text.lower().replace(".", " ").replace("-", " ").split()
     return set(w for w in words if w and len(w) > 1)
-
 
 def find_row_by_fio(fio: str) -> int | None:
     if not fio:
@@ -56,17 +83,15 @@ def find_row_by_fio(fio: str) -> int | None:
     values = sheet.get_all_values()
     for i, row in enumerate(values, 1):
         if len(row) > 1:
-            cell = row[1]  # предполагаем, что ФИО в столбце B (индекс 1)
+            cell = row[1]
             cell_set = normalize_fio(cell)
             if len(search_set & cell_set) >= 2:
                 return i
     return None
 
-
 def save_user_info(row: int, user_id: int, username: str | None):
-    sheet.update_cell(row, 7, str(user_id))           # столбец G
+    sheet.update_cell(row, 7, str(user_id))
     sheet.update_cell(row, 8, f"@{username}" if username else "")
-
 
 async def set_row_color(row: int, stage: int):
     COLORS = {1: "#ADD8E6", 2: "#FFA500", 3: "#90EE90"}
@@ -85,86 +110,68 @@ async def set_row_color(row: int, stage: int):
     except Exception as e:
         logger.error(f"Не удалось закрасить строку {row}: {e}")
 
-
 # ─── Хендлеры ───────────────────────────────────────────────────────────────
 
 @dp.message(Command("start"))
 async def cmd_start(message: types.Message):
-    await message.answer("Перешли мне сообщение от человека (или напиши его ФИО вручную)")
+    await message.answer("Перешли мне сообщение от человека (или напиши ФИО)", reply_markup=stats_kb)
 
+@dp.message(lambda m: m.text == "📊 Статистика")
+async def show_stats(message: types.Message):
+    total, issued, paid = get_stats()
+    text = f"📊 Статистика:\n\n" \
+           f"Уникальных строк: {total}\n" \
+           f"Выдал реквизиты: {issued}\n" \
+           f"Оплатило: {paid}"
+    await message.answer(text)
 
 @dp.message()
 async def handle_message(message: types.Message):
-    # 1. Определяем, чьи данные использовать
     target_user = None
     is_forward = False
 
-    # Современный способ (aiogram 3.x)
     if message.forward_origin:
         origin = message.forward_origin
-
         if isinstance(origin, types.MessageOriginUser):
             target_user = origin.sender_user
             is_forward = True
-
-        elif isinstance(origin, types.MessageOriginHiddenUser):
-            await message.answer("Это сообщение от скрытого/удалённого аккаунта — user ID недоступен.")
+        elif isinstance(origin, (types.MessageOriginHiddenUser, types.MessageOriginChannel, types.MessageOriginChat)):
+            await message.answer("Невозможно получить ID пользователя.")
             return
 
-        elif isinstance(origin, (types.MessageOriginChannel, types.MessageOriginChat)):
-            await message.answer("Сообщение переслано из канала или чата — пользовательский ID отсутствует.")
-            return
-
-    # Запасной вариант (старые клиенты / совместимость)
-    elif message.forward_from:
-        target_user = message.forward_from
-        is_forward = True
-
-    # Если не пересылка → берём отправителя
     if not target_user:
         target_user = message.from_user
 
     user_id = target_user.id
     username = target_user.username
 
-    # 2. Ищем строку в таблице
     row = user_to_row.get(user_id)
 
     if row:
-        text = f"Строка {row} | @{username or 'без ника'} (уже привязан)"
+        text = f"Строка {row} | @{username or 'без ника'}"
     else:
-        # Пытаемся найти по тексту сообщения
         search_text = message.text or message.caption or ""
         row = find_row_by_fio(search_text)
-
         if row:
             user_to_row[user_id] = row
             save_user_info(row, user_id, username)
             text = f"Строка {row} | Записал @{username or 'без ника'}"
         else:
-            await message.answer(
-                "Не удалось найти подходящую строку по ФИО.\n\n"
-                "Попробуй:\n"
-                "• переслать сообщение, в котором есть ФИО\n"
-                "• или просто написать ФИО текстом"
-            )
+            await message.answer("Не нашёл подходящую строку по ФИО.")
             return
 
-    # 3. Кнопки
     kb = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="1 • Прошёл регистрацию", callback_data=f"s1_{row}")],
         [InlineKeyboardButton(text="2 • Выдал реквизиты",   callback_data=f"s2_{row}")],
         [InlineKeyboardButton(text="3 • Оплатил",           callback_data=f"s3_{row}")]
     ])
 
-    # 4. Ответ
     note = " (переслано)" if is_forward else ""
     await message.answer(
         f"{text}{note}\n"
         f"Пользователь: {user_id}  @{username or 'без ника'}",
         reply_markup=kb
     )
-
 
 @dp.callback_query()
 async def process_callback(callback: types.CallbackQuery):
@@ -196,16 +203,13 @@ async def process_callback(callback: types.CallbackQuery):
 
     await callback.answer()
 
-
 # ─── FastAPI + Webhook ──────────────────────────────────────────────────────
 
 app = FastAPI()
 
-
 @app.get("/")
 async def root():
     return {"status": "bot alive"}
-
 
 @app.post("/webhook")
 async def webhook(request: Request):
@@ -217,7 +221,6 @@ async def webhook(request: Request):
     except Exception as e:
         logger.error(f"Webhook error: {e}")
         return {"status": "error"}, 500
-
 
 if __name__ == "__main__":
     uvicorn.run("main:app", host="0.0.0.0", port=PORT, log_level="info")
