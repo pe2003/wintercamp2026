@@ -86,7 +86,8 @@ async def stats_handler(message: types.Message):
         if len(row) > 1:
             fio = row[1].strip().lower()
             if not fio: continue
-            color = sheet.cell(idx, 1).background_color or {}
+            cell = sheet.cell(idx, 1)
+            color = cell.color_format.backgroundColor or {}
             hex_c = f"#{int(color.get('red',0)*255):02x}{int(color.get('green',0)*255):02x}{int(color.get('blue',0)*255):02x}"
             if hex_c == "#add8e6": unique[1].add(fio)
             elif hex_c == "#ffa500": unique[2].add(fio)
@@ -98,7 +99,6 @@ async def stats_handler(message: types.Message):
         f"• Оплатил: {len(unique[3])}"
     )
     await message.answer(text, reply_markup=main_kb)
-    return
 
 @dp.message()
 async def handle_message(message: types.Message):
