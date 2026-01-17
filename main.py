@@ -66,42 +66,40 @@ async def set_row_color(row: int, stage: int):
     try:
         sheet.format(f"A{row}:Z{row}", {"backgroundColor": {"red": r, "green": g, "blue": b}})
     except Exception as e:
-        logger.error(f"Не удалось закрасить строку {row}: {e}")
+        logger.error(f"Ошибка окраски строки {row}: {e}")
 
 main_kb = ReplyKeyboardMarkup(
     keyboard=[[KeyboardButton(text="Статистика")]],
-    resize_keyboard=True,
-    one_time_keyboard=False
+    resize_keyboard=True
 )
 
 @dp.message(Command("start"))
 async def cmd_start(message: types.Message):
-    await message.answer(
-        "Перешли сообщение от человека или напиши ФИО",
-        reply_markup=main_kb
-    )
+    await message.answer("Перешли сообщение или напиши ФИО", reply_markup=main_kb)
 
-@dp.message(lambda m: m.text == "Статистика")
-async def stats_handler(message: types.Message):
-    values = sheet.get_all_values()
-    unique = {1: set(), 2: set(), 3: set()}
+@dp.message()
+async def handle_message(message: types.Message):
+    if message.text == "Статистика":
+        values = sheet.get_all_values()
+        unique = {1: set(), 2: set(), 3: set()}
 
-    for row in values[1:]:
-        if len(row) > 1:
-            fio = row[1].strip().lower()
-            if not fio: continue
-            color = sheet.cell(row[0].row, 1).background_color or {}
-            hex_c = f"#{int(color.get('red',0)*255):02x}{int(color.get('green',0)*255):02x}{int(color.get('blue',0)*255):02x}"
-            if hex_c == "#add8e6": unique[1].add(fio)
-            elif hex_c == "#ffa500": unique[2].add(fio)
-            elif hex_c == "#90ee90": unique[3].add(fio)
+        for row in values[1:]:
+            if len(row) > 1:
+                fio = row[1].strip().lower()
+                if not fio: continue
+                color = sheet.cell(row[0].row, 1).background_color or {}
+                hex_c = f"#{int(color.get('red',0)*255):02x}{int(color.get('green',0)*255):02x}{int(color.get('blue',0)*255):02x}"
+                if hex_c == "#add8e6": unique[1].add(fio)
+                elif hex_c == "#ffa500": unique[2].add(fio)
+                elif hex_c == "#90ee90": unique[3].add(fio)
 
-    text = (
-        f"• Прошёл регистрацию: {len(unique[1])}\n"
-        f"• Выдал реквизиты: {len(unique[2])}\n"
-        f"• Оплатил: {len(unique[3])}"
-    )
-    await message.answer(text, reply_markup=main_kb)
+        text = (
+            f"• Прошёл регистрацию: {len(unique[1])}\n"
+            f"• Выдал реквизиты: {len(unique[2])}\n"
+            f"• Оплатил: {len(unique[3])}"
+        )
+        await message.answer(text, reply_markup=main_kb)
+        return
 
     target_user = message.forward_origin.sender_user if message.forward_origin and hasattr(message.forward_origin, 'sender_user') else message.from_user
     user_id = target_user.id
