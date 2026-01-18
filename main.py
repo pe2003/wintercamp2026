@@ -38,24 +38,33 @@ user_to_row = {}
 # ─── Статистика ─────────────────────────────────────────────────────────────
 
 def get_stats():
-    values = sheet.get_all_values()
-    if not values or len(values) < 2:
-        return 0, 0, 0, 0, 0
-
-    total = len(values) - 1
+    # Получаем форматирование всех строк
+    format_data = sheet.fetch_sheet_metadata({"includeGridData": True})
+    rows = format_data["sheets"][0]["data"][0]["rowData"]
+    
+    total = len(rows) - 1 if rows else 0
     blue = orange = green = 0
-
-    for row in values[1:]:
-        if len(row) < 11:
+    
+    for i in range(1, len(rows)):  # пропускаем заголовок
+        row_data = rows[i]
+        if "values" not in row_data:
             continue
-        status = row[2].strip().lower()
-        if status in ["прошёл регистрацию", "1", "синий"]:
-            blue += 1
-        if status in ["выдал реквизиты", "2", "оранжевый"]:
-            orange += 1
-        if status in ["оплатил", "3", "зелёный", "оплачено"]:
-            green += 1
-
+        # Берём цвет первой ячейки строки (A)
+        cell = row_data["values"][0]
+        if "effectiveFormat" in cell and "backgroundColor" in cell["effectiveFormat"]:
+            color = cell["effectiveFormat"]["backgroundColor"]
+            r, g, b = color.get("red", 0), color.get("green", 0), color.get("blue", 0)
+            
+            # Синий ≈ #ADD8E6 (0.68, 0.85, 0.90)
+            if abs(r - 0.68) < 0.1 and abs(g - 0.85) < 0.1 and abs(b - 0.90) < 0.1:
+                blue += 1
+            # Оранжевый ≈ #FFA500 (1.0, 0.65, 0.0)
+            elif abs(r - 1.0) < 0.1 and abs(g - 0.65) < 0.1 and abs(b - 0.0) < 0.1:
+                orange += 1
+            # Зелёный ≈ #90EE90 (0.56, 0.93, 0.56)
+            elif abs(r - 0.56) < 0.1 and abs(g - 0.93) < 0.1 and abs(b - 0.56) < 0.1:
+                green += 1
+    
     return total, blue, orange, green
 # ─── Клавиатура статистики ──────────────────────────────────────────────────
 
