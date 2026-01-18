@@ -38,23 +38,25 @@ user_to_row = {}
 # ─── Статистика ─────────────────────────────────────────────────────────────
 
 def get_stats():
-    values = sheet.get_all_values()  # всегда свежие данные
-    
+    values = sheet.get_all_values()
     if not values or len(values) < 2:
-        return 0, 0, 0
-        
+        return 0, 0, 0, 0, 0
+
     total = len(values) - 1
-    issued = paid = 0
-    
+    blue = orange = green = 0
+
     for row in values[1:]:
-        if len(row) >= 3:
-            status = row[2].strip().lower()
-            if status in ["выдал реквизиты", "2", "оранжевый"]:
-                issued += 1
-            if status in ["оплатил", "3", "зелёный", "оплачено"]:
-                paid += 1
-                
-    return total, issued, paid
+        if len(row) < 3:
+            continue
+        status = row[2].strip().lower()
+        if status in ["прошёл регистрацию", "1", "синий"]:
+            blue += 1
+        if status in ["выдал реквизиты", "2", "оранжевый"]:
+            orange += 1
+        if status in ["оплатил", "3", "зелёный", "оплачено"]:
+            green += 1
+
+    return total, blue, orange, green
 # ─── Клавиатура статистики ──────────────────────────────────────────────────
 
 stats_kb = ReplyKeyboardMarkup(
@@ -117,12 +119,14 @@ async def cmd_start(message: types.Message):
 
 @dp.message(lambda m: m.text == "📊 Статистика")
 async def show_stats(message: types.Message):
-    total, issued, paid = get_stats()
-    await message.answer(f"📊 Статистика:\n\n"
-                         f"Уникальных строк: {total}\n"
-                         f"Выдал реквизиты: {issued}\n"
-                         f"Оплатило:         {paid}")
-
+    total, blue, orange, green = get_stats()
+    await message.answer(
+        f"📊 Статистика:\n\n"
+        f"Уникальных строк: {total}\n"
+        f"Синий (регистрация): {blue}\n"
+        f"Оранжевый (реквизиты): {orange}\n"
+        f"Зелёный (оплачено): {green}"
+    )
 @dp.message()
 async def handle_message(message: types.Message):
     target_user = message.from_user
