@@ -156,7 +156,7 @@ async def handle_message(message: types.Message):
         info += f"Дата: {row_data[0]}\n"
         info += f"ФИО: {row_data[1]}\n"
         info += f"Дата рождения: {row_data[2]}\n"
-        info += f"Город: {row_data[}\n"
+        info += f"Город: {row_data[3]}\n"
         info += f"Номер телефона: {row_data[4]}\n"
         info += f"Член церки: {row_data[6] if len(row_data) > 6 else '—'}\n"
         info += f"Почта: {row_data[7] if len(row_data) > 7 else '—'}\n"
