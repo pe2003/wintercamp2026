@@ -256,7 +256,9 @@ async def process_requisites(callback: types.CallbackQuery):
     row = int(row_str)
     num = int(num_str)
     
-    sheet.update_cell(row, 12, str(num))  # L = колонка 12
+    sheet.update_cell(row, 12, str(num))          # L — номер реквизитов
+    sheet.update_cell(row, 11, "Выдал реквизиты") # K — статус
+    await set_row_color(row, 2)                   # ← цвет оранжевый
     
     try:
         text = callback.message.text.split("\n\nВыберите комплект:")[0]
