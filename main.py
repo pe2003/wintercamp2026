@@ -197,12 +197,18 @@ async def handle_message(message: types.Message):
 
 @dp.callback_query()
 async def process_callback(callback: types.CallbackQuery):
-    if "_" not in callback.data:
+    data = callback.data
+    
+    if data.startswith("req_"):
+        await process_requisites(callback)
+        return
+    
+    if "_" not in data:
         await callback.answer()
         return
     
-    parts = callback.data.split("_")
-    if len(parts) < 2 or not parts[0].startswith("s"):
+    parts = data.split("_")
+    if len(parts) != 2 or not parts[0].startswith("s"):
         await callback.answer("Ошибка данных")
         return
     
