@@ -33,7 +33,6 @@ bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher()
 user_to_row = {}
 
-# ─── Статистика ─────────────────────────────────────────────────────────────
 def get_stats():
     values = sheet.get_all_values()
     if not values or len(values) < 2:
@@ -43,12 +42,10 @@ def get_stats():
     blue = orange = green = 0
     
     for row in values[1:]:
-        if len(row) < 2:
-            continue
+        if len(row) < 2: continue
         fio = row[1].strip().lower()
         norm = ' '.join(sorted(fio.replace('.', '').replace('-', '').split()))
-        if norm in seen:
-            continue
+        if norm in seen: continue
         seen.add(norm)
         
         if len(row) >= 11:
@@ -60,17 +57,14 @@ def get_stats():
             elif status in ["оплатил", "3", "зелёный", "оплачено"]:
                 green += 1
     
-    total = len(seen)
-    return total, blue, orange, green
+    return len(seen), blue, orange, green
 
-# ─── Клавиатура статистики ──────────────────────────────────────────────────
 stats_kb = ReplyKeyboardMarkup(
     keyboard=[[KeyboardButton(text="📊 Статистика")]],
     resize_keyboard=True,
     one_time_keyboard=False
 )
 
-# ─── Вспомогательные функции ────────────────────────────────────────────────
 def normalize_fio(text: str) -> set:
     if not text: return set()
     words = text.lower().replace(".", " ").replace("-", " ").split()
@@ -89,8 +83,8 @@ def find_row_by_fio(fio: str) -> int | None:
     return None
 
 def save_user_info(row: int, user_id: int, username: str | None):
-    sheet.update_cell(row, 9, str(user_id))     # I
-    sheet.update_cell(row, 10, f"@{username}" if username else "")  # J
+    sheet.update_cell(row, 9, str(user_id))
+    sheet.update_cell(row, 10, f"@{username}" if username else "")
 
 async def set_row_color(row: int, stage: int):
     COLORS = {1: "#ADD8E6", 2: "#FFA500", 3: "#90EE90"}
@@ -104,14 +98,12 @@ async def set_row_color(row: int, stage: int):
     except Exception as e:
         logger.error(f"Ошибка окрашивания строки {row}: {e}")
 
-# ─── Статусы для записи в таблицу ───────────────────────────────────────────
 STATUS_TEXTS = {
     1: "Прошёл регистрацию",
     2: "Выдал реквизиты",
     3: "Оплатил"
 }
 
-# ─── Хендлеры ───────────────────────────────────────────────────────────────
 @dp.message(Command("start"))
 async def cmd_start(message: types.Message):
     await message.answer("Перешли сообщение или напиши ФИО", reply_markup=stats_kb)
@@ -155,26 +147,25 @@ async def handle_message(message: types.Message):
         await message.answer("Не нашёл строку по ФИО.")
         return
     
-        row_data = sheet.row_values(row)
+    row_data = sheet.row_values(row)
     
     info = f"Строка {row} | @{username or 'без ника'}\n"
     info += f"Пользователь: {user_id}\n\n"
     
     if len(row_data) >= 8:
-        info += f"A: {row_data[0]}\n"   # Столбец A
-        info += f"B: {row_data[1]}\n"   # Столбец B (ФИО)
-        info += f"C: {row_data[2]}\n"   # Столбец C
-        info += f"D: {row_data[3]}\n"   # Столбец D
-        info += f"E: {row_data[4]}\n"   # Столбец E
-        info += f"G: {row_data[6] if len(row_data) > 6 else '—'}\n"   # Столбец G (индекс 6)
-        info += f"H: {row_data[7] if len(row_data) > 7 else '—'}\n"   # Столбец H (индекс 7)
+        info += f"A: {row_data[0]}\n"
+        info += f"B: {row_data[1]}\n"
+        info += f"C: {row_data[2]}\n"
+        info += f"D: {row_data[3]}\n"
+        info += f"E: {row_data[4]}\n"
+        info += f"G: {row_data[6] if len(row_data) > 6 else '—'}\n"
+        info += f"H: {row_data[7] if len(row_data) > 7 else '—'}\n"
     
     status = sheet.cell(row, 11).value or "—"
     info += f"\nСтатус (K): {status}"
     
-    note = " (переслано)" if is_forward else ""
-    if note:
-        info = info.replace("\n\n", f"{note}\n\n")
+    if is_forward:
+        info += " (переслано)"
     
     kb = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="1 • Прошёл регистрацию", callback_data=f"s1_{row}")],
@@ -186,7 +177,7 @@ async def handle_message(message: types.Message):
 
 @dp.callback_query()
 async def process_callback(callback: types.CallbackQuery):
-    if "_" not in callback.data:
+    if "_" not in callback.data: 
         await callback.answer()
         return
     
@@ -208,14 +199,15 @@ async def process_callback(callback: types.CallbackQuery):
     }.get(stage, "неизвестно")
     
     try:
-        new_text = callback.message.text + f"\n\n→ {status_text}"
-        await callback.message.edit_text(new_text, reply_markup=None)
+        await callback.message.edit_text(
+            callback.message.text + f"\n\n→ {status_text}",
+            reply_markup=None
+        )
     except:
         pass
     
     await callback.answer()
 
-# ─── Webhook ────────────────────────────────────────────────────────────────
 app = FastAPI()
 
 @app.get("/")
