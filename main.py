@@ -155,21 +155,22 @@ async def handle_message(message: types.Message):
         await message.answer("Не нашёл строку по ФИО.")
         return
     
-    row_data = sheet.row_values(row)
+        row_data = sheet.row_values(row)
     
     info = f"Строка {row} | @{username or 'без ника'}\n"
     info += f"Пользователь: {user_id}\n\n"
     
-    if len(row_data) >= 6:
-        info += f"Время: {row_data[0]}\n"
-        info += f"ФИО: {row_data[1]}\n"
-        info += f"Дата рождения: {row_data[2]}\n"
-        info += f"Город: {row_data[3]}\n"
-        info += f"Телефон: {row_data[4]}\n"
-        info += f"Email: {row_data[5]}\n"
+    if len(row_data) >= 8:
+        info += f"A: {row_data[0]}\n"   # Столбец A
+        info += f"B: {row_data[1]}\n"   # Столбец B (ФИО)
+        info += f"C: {row_data[2]}\n"   # Столбец C
+        info += f"D: {row_data[3]}\n"   # Столбец D
+        info += f"E: {row_data[4]}\n"   # Столбец E
+        info += f"G: {row_data[6] if len(row_data) > 6 else '—'}\n"   # Столбец G (индекс 6)
+        info += f"H: {row_data[7] if len(row_data) > 7 else '—'}\n"   # Столбец H (индекс 7)
     
     status = sheet.cell(row, 11).value or "—"
-    info += f"\nСтатус: {status}"
+    info += f"\nСтатус (K): {status}"
     
     note = " (переслано)" if is_forward else ""
     if note:
