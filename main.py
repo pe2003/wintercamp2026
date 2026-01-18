@@ -38,34 +38,24 @@ user_to_row = {}
 # ─── Статистика ─────────────────────────────────────────────────────────────
 
 def get_stats():
-    # Получаем значения и форматирование одним запросом
-    result = sheet.spreadsheet.values_batch_get(
-        ranges=[sheet.title],
-        valueRenderOption='FORMATTED_VALUE',
-        fields='sheets(data(rowData(values(effectiveFormat(backgroundColor))))'
-    )
-    
-    rows = result['valueRanges'][0].get('rowData', [])
-    
-    total = len(rows) - 1 if rows else 0
+    values = sheet.get_all_values()
+    if not values or len(values) < 2:
+        return 0, 0, 0, 0
+
+    total = len(values) - 1
     blue = orange = green = 0
-    
-    for i in range(1, len(rows)):
-        row = rows[i]
-        if not row.get('values'):
+
+    for row in values[1:]:
+        if len(row) < 11:
             continue
-        color = row['values'][0].get('effectiveFormat', {}).get('backgroundColor', {})
-        r = color.get('red', 0)
-        g = color.get('green', 0)
-        b = color.get('blue', 0)
-        
-        if 0.58 < r < 0.78 and 0.75 < g < 0.95 and 0.8 < b < 1.0:   # ~#ADD8E6
+        status = row[10].strip().lower()  # столбец K (индекс 10)
+        if status in ["прошёл регистрацию", "1", "синий"]:
             blue += 1
-        elif 0.9 < r < 1.0 and 0.55 < g < 0.75 and b < 0.1:        # ~#FFA500
+        elif status in ["выдал реквизиты", "2", "оранжевый"]:
             orange += 1
-        elif 0.46 < r < 0.66 and 0.83 < g < 1.0 and 0.46 < b < 0.66:  # ~#90EE90
+        elif status in ["оплатил", "3", "зелёный", "оплачено"]:
             green += 1
-    
+
     return total, blue, orange, green
 # ─── Клавиатура статистики ──────────────────────────────────────────────────
 
