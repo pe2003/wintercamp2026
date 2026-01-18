@@ -46,7 +46,7 @@ def get_stats():
     blue = orange = green = 0
 
     for row in values[1:]:
-        if len(row) < 3:
+        if len(row) < 11:
             continue
         status = row[2].strip().lower()
         if status in ["прошёл регистрацию", "1", "синий"]:
