@@ -33,6 +33,21 @@ bot = Bot(token=BOT_TOKEN)
 dp = Dispatcher()
 user_to_row = {}
 
+REQUISITES_LIMIT = 15
+REQUISITES_COUNT = 8
+
+def get_requisites_counts():
+    values = sheet.get_all_values()
+    counts = [0] * (REQUISITES_COUNT + 1)
+    for row in values[1:]:
+        if len(row) >= 12:
+            req = row[11].strip()
+            if req.isdigit():
+                n = int(req)
+                if 1 <= n <= REQUISITES_COUNT:
+                    counts[n] += 1
+    return counts
+
 def get_stats():
     values = sheet.get_all_values()
     if not values or len(values) < 2:
@@ -153,13 +168,13 @@ async def handle_message(message: types.Message):
     info += f"Пользователь: {user_id}\n\n"
     
     if len(row_data) >= 8:
-        info += f"Дата: {row_data[0]}\n"
-        info += f"ФИО: {row_data[1]}\n"
-        info += f"Дата рождения: {row_data[2]}\n"
-        info += f"Город: {row_data[3]}\n"
-        info += f"Номер телефона: {row_data[4]}\n"
-        info += f"Член церки: {row_data[6] if len(row_data) > 6 else '—'}\n"
-        info += f"Почта: {row_data[7] if len(row_data) > 7 else '—'}\n"
+        info += f"A: {row_data[0]}\n"
+        info += f"B: {row_data[1]}\n"
+        info += f"C: {row_data[2]}\n"
+        info += f"D: {row_data[3]}\n"
+        info += f"E: {row_data[4]}\n"
+        info += f"G: {row_data[6] if len(row_data) > 6 else '—'}\n"
+        info += f"H: {row_data[7] if len(row_data) > 7 else '—'}\n"
     
     status = sheet.cell(row, 11).value or "—"
     info += f"\nСтатус (K): {status}"
@@ -177,18 +192,34 @@ async def handle_message(message: types.Message):
 
 @dp.callback_query()
 async def process_callback(callback: types.CallbackQuery):
-    if "_" not in callback.data: 
+    if "_" not in callback.data:
         await callback.answer()
         return
     
-    stage_str, row_str = callback.data.split("_", 1)
-    if not stage_str.startswith("s") or not row_str.isdigit():
+    parts = callback.data.split("_")
+    if len(parts) < 2 or not parts[0].startswith("s"):
         await callback.answer("Ошибка данных")
         return
     
-    stage = int(stage_str[1:])
-    row = int(row_str)
+    stage = int(parts[0][1:])
+    row = int(parts[1])
     
+    if stage == 2:
+        counts = get_requisites_counts()
+        kb = InlineKeyboardMarkup(inline_keyboard=[])
+        for i in range(1, REQUISITES_COUNT + 1):
+            text = f"Реквизиты {i} ({counts[i]}/{REQUISITES_LIMIT})"
+            kb.inline_keyboard.append([
+                InlineKeyboardButton(text=text, callback_data=f"req_{row}_{i}")
+            ])
+        await callback.message.edit_text(
+            callback.message.text + "\n\nВыберите комплект:",
+            reply_markup=kb
+        )
+        await callback.answer()
+        return
+    
+    # Для 1 и 3
     sheet.update_cell(row, 11, STATUS_TEXTS.get(stage, ""))
     await set_row_color(row, stage)
     
@@ -201,6 +232,25 @@ async def process_callback(callback: types.CallbackQuery):
     try:
         await callback.message.edit_text(
             callback.message.text + f"\n\n→ {status_text}",
+            reply_markup=None
+        )
+    except:
+        pass
+    
+    await callback.answer()
+
+@dp.callback_query(lambda c: c.data.startswith("req_"))
+async def process_requisites(callback: types.CallbackQuery):
+    _, row_str, num_str = callback.data.split("_")
+    row = int(row_str)
+    num = int(num_str)
+    
+    sheet.update_cell(row, 12, str(num))  # L = колонка 12
+    
+    try:
+        text = callback.message.text.split("\n\nВыберите комплект:")[0]
+        await callback.message.edit_text(
+            text + f"\n\n→ Выданы Реквизиты {num}",
             reply_markup=None
         )
     except:
