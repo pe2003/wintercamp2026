@@ -84,8 +84,8 @@ def find_row_by_fio(fio: str) -> int | None:
     return None
 
 def save_user_info(row: int, user_id: int, username: str | None):
-    sheet.update_cell(row, 7, str(user_id))           # G
-    sheet.update_cell(row, 8, f"@{username}" if username else "")
+    sheet.update_cell(row, 9, str(user_id))                    # I
+    sheet.update_cell(row, 10, f"@{username}" if username else "")  # J
 
 async def set_row_color(row: int, stage: int):
     COLORS = {1: "#ADD8E6", 2: "#FFA500", 3: "#90EE90"}
