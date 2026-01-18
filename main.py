@@ -178,7 +178,7 @@ async def process_callback(callback: types.CallbackQuery):
     row = int(row_str)
 
     # Записываем текстовый статус в столбец C
-    sheet.update_cell(row, 3, STATUS_TEXTS.get(stage, ""))
+    sheet.update_cell(row, 11, STATUS_TEXTS.get(stage, ""))
 
     # Меняем цвет
     await set_row_color(row, stage)
