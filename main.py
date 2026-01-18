@@ -38,32 +38,33 @@ user_to_row = {}
 # ─── Статистика ─────────────────────────────────────────────────────────────
 
 def get_stats():
-    # Получаем форматирование всех строк
-    format_data = sheet.fetch_sheet_metadata({"includeGridData": True})
-    rows = format_data["sheets"][0]["data"][0]["rowData"]
+    # Получаем значения и форматирование одним запросом
+    result = sheet.spreadsheet.values_batch_get(
+        ranges=[sheet.title],
+        valueRenderOption='FORMATTED_VALUE',
+        fields='sheets(data(rowData(values(effectiveFormat(backgroundColor))))'
+    )
+    
+    rows = result['valueRanges'][0].get('rowData', [])
     
     total = len(rows) - 1 if rows else 0
     blue = orange = green = 0
     
-    for i in range(1, len(rows)):  # пропускаем заголовок
-        row_data = rows[i]
-        if "values" not in row_data:
+    for i in range(1, len(rows)):
+        row = rows[i]
+        if not row.get('values'):
             continue
-        # Берём цвет первой ячейки строки (A)
-        cell = row_data["values"][0]
-        if "effectiveFormat" in cell and "backgroundColor" in cell["effectiveFormat"]:
-            color = cell["effectiveFormat"]["backgroundColor"]
-            r, g, b = color.get("red", 0), color.get("green", 0), color.get("blue", 0)
-            
-            # Синий ≈ #ADD8E6 (0.68, 0.85, 0.90)
-            if abs(r - 0.68) < 0.1 and abs(g - 0.85) < 0.1 and abs(b - 0.90) < 0.1:
-                blue += 1
-            # Оранжевый ≈ #FFA500 (1.0, 0.65, 0.0)
-            elif abs(r - 1.0) < 0.1 and abs(g - 0.65) < 0.1 and abs(b - 0.0) < 0.1:
-                orange += 1
-            # Зелёный ≈ #90EE90 (0.56, 0.93, 0.56)
-            elif abs(r - 0.56) < 0.1 and abs(g - 0.93) < 0.1 and abs(b - 0.56) < 0.1:
-                green += 1
+        color = row['values'][0].get('effectiveFormat', {}).get('backgroundColor', {})
+        r = color.get('red', 0)
+        g = color.get('green', 0)
+        b = color.get('blue', 0)
+        
+        if 0.58 < r < 0.78 and 0.75 < g < 0.95 and 0.8 < b < 1.0:   # ~#ADD8E6
+            blue += 1
+        elif 0.9 < r < 1.0 and 0.55 < g < 0.75 and b < 0.1:        # ~#FFA500
+            orange += 1
+        elif 0.46 < r < 0.66 and 0.83 < g < 1.0 and 0.46 < b < 0.66:  # ~#90EE90
+            green += 1
     
     return total, blue, orange, green
 # ─── Клавиатура статистики ──────────────────────────────────────────────────
