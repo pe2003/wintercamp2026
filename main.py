@@ -153,13 +153,13 @@ async def handle_message(message: types.Message):
     info += f"Пользователь: {user_id}\n\n"
     
     if len(row_data) >= 8:
-        info += f"A: {row_data[0]}\n"
-        info += f"B: {row_data[1]}\n"
-        info += f"C: {row_data[2]}\n"
-        info += f"D: {row_data[3]}\n"
-        info += f"E: {row_data[4]}\n"
-        info += f"G: {row_data[6] if len(row_data) > 6 else '—'}\n"
-        info += f"H: {row_data[7] if len(row_data) > 7 else '—'}\n"
+        info += f"Дата: {row_data[0]}\n"
+        info += f"ФИО: {row_data[1]}\n"
+        info += f"Дата рождения: {row_data[2]}\n"
+        info += f"Город: {row_data[}\n"
+        info += f"Номер телефона: {row_data[4]}\n"
+        info += f"Член церки: {row_data[6] if len(row_data) > 6 else '—'}\n"
+        info += f"Почта: {row_data[7] if len(row_data) > 7 else '—'}\n"
     
     status = sheet.cell(row, 11).value or "—"
     info += f"\nСтатус (K): {status}"
