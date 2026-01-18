@@ -38,23 +38,24 @@ user_to_row = {}
 # ─── Статистика ─────────────────────────────────────────────────────────────
 
 def get_stats():
-    values = sheet.get_all_values()
+    sheet.clear_cache()                     # сбрасываем кэш
+    values = sheet.get_all_values()         # заново загружаем все данные
+    
     if not values or len(values) < 2:
         return 0, 0, 0
-
-    total = len(values) - 1  # без заголовка
-
+        
+    total = len(values) - 1                 # без заголовка
+    
     issued = paid = 0
     for row in values[1:]:
         if len(row) >= 3:
-            status = row[2].strip().lower()  # столбец C (индекс 2)
+            status = row[2].strip().lower()     # столбец C (индекс 2)
             if status in ["выдал реквизиты", "2", "оранжевый"]:
                 issued += 1
             if status in ["оплатил", "3", "зелёный", "оплачено"]:
                 paid += 1
-
+                
     return total, issued, paid
-
 # ─── Клавиатура статистики ──────────────────────────────────────────────────
 
 stats_kb = ReplyKeyboardMarkup(
