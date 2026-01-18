@@ -38,18 +38,17 @@ user_to_row = {}
 # ─── Статистика ─────────────────────────────────────────────────────────────
 
 def get_stats():
-    sheet.clear_cache()                     # сбрасываем кэш
-    values = sheet.get_all_values()         # заново загружаем все данные
+    values = sheet.get_all_values()  # всегда свежие данные
     
     if not values or len(values) < 2:
         return 0, 0, 0
         
-    total = len(values) - 1                 # без заголовка
-    
+    total = len(values) - 1
     issued = paid = 0
+    
     for row in values[1:]:
         if len(row) >= 3:
-            status = row[2].strip().lower()     # столбец C (индекс 2)
+            status = row[2].strip().lower()
             if status in ["выдал реквизиты", "2", "оранжевый"]:
                 issued += 1
             if status in ["оплатил", "3", "зелёный", "оплачено"]:
