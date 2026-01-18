@@ -59,8 +59,8 @@ def get_stats():
     for row in values[1:]:
         if len(row) < 2: continue
         fio = row[1].strip().lower()
-        norm = ' '.join(sorted(fio.replace('.', '').replace('-', '').split()))
-        if norm in seen: continue
+# Фамилия + имя + отчество — разные комбинации = разные люди
+norm = ' '.join(fio.replace('.', '').replace('-', '').split()[:3])  # первые три слова        if norm in seen: continue
         seen.add(norm)
         
         if len(row) >= 11:
