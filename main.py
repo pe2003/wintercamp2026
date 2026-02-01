@@ -53,16 +53,15 @@ def get_stats():
     if not values or len(values) < 2:
         return 0, 0, 0, 0, 0, 0, 0
     
-    total_rows = sum(1 for row in values[1:] if len(row) >= 2 and row[1].strip())
+    # Только строки, где есть ФИО (столбец B)
+    data_rows = [row for row in values[1:] if len(row) > 1 and row[1].strip()]
+    total_rows = len(data_rows)
     
     seen = set()
     duplicates = 0
     blue = orange = green = white = 0
     
-    for row in values[1:]:
-        if len(row) < 2 or not row[1].strip():
-            continue
-            
+    for row in data_rows:
         fio = row[1].strip().lower()
         words = fio.replace('.', '').replace('-', '').split()
         norm = ' '.join(words[:3])
@@ -72,15 +71,13 @@ def get_stats():
             continue
         seen.add(norm)
         
-        status = ""
-        if len(row) > 10:
-            status = row[10].strip().lower()
+        status = row[10].strip().lower() if len(row) > 10 else ""
         
-        if status in ["прошёл регистрацию", "1", "синий", "прошел регистрацию", "прошла регистрацию", "прошёл регистрацию"]:
+        if status in ["прошёл регистрацию", "1", "синий", "прошел регистрацию", "прошла регистрацию"]:
             blue += 1
         elif status in ["выдал реквизиты", "2", "оранжевый", "выданы реквизиты", "выдал", "выданы"]:
             orange += 1
-        elif status in ["оплатил", "3", "зелёный", "оплачено", "оплачена", "оплачено", "оплатила"]:
+        elif status in ["оплатил", "3", "зелёный", "оплачено", "оплачена", "оплатила"]:
             green += 1
         else:
             white += 1
