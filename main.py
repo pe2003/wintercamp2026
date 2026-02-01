@@ -73,14 +73,16 @@ def get_stats():
         
         status = row[10].strip().lower() if len(row) > 10 else ""
         
-        if status in ["прошёл регистрацию", "1", "синий", "прошел регистрацию", "прошла регистрацию"]:
-            blue += 1
-        elif status in ["выдал реквизиты", "2", "оранжевый", "выданы реквизиты", "выдал", "выданы"]:
-            orange += 1
-        elif status in ["оплатил", "3", "зелёный", "оплачено", "оплачена", "оплатила"]:
-            green += 1
-        else:
-            white += 1
+        status_clean = (row[10].strip().lower() if len(row) > 10 else "").replace(" ", "")
+
+if status_clean in ["прошёлрегистрацию", "прошелрегистрацию", "прошларегистрацию", "1", "синий"]:
+    blue += 1
+elif status_clean in ["выдалреквизиты", "выданыреквизиты", "2", "оранжевый"]:
+    orange += 1
+elif status_clean in ["оплатил", "оплачено", "оплачена", "3", "зелёный"]:
+    green += 1
+else:
+    white += 1  # "рег", "Рег" и пустые — белые
     
     unique = len(seen)
     return total_rows, unique, duplicates, blue, orange, green, white
