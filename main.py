@@ -37,37 +37,44 @@ REQUISITES_LIMIT = 15
 REQUISITES_COUNT = 8
 
 # ────────────────────────────────────────────────
-# Нормализация ФИО — только буквы, нижний регистр
+# Нормализация ФИО для дедубликации
 # ────────────────────────────────────────────────
 def normalize_fio(fio: str) -> str:
     if not fio:
         return ""
+    # Только буквы, нижний регистр
     cleaned = ''.join(c for c in fio.lower() if c.isalpha())
     return cleaned if len(cleaned) >= 6 else ""
 
 
 # ────────────────────────────────────────────────
-# Определение цвета — очень мягкие условия
+# Распознавание статуса по цвету (под твои оттенки)
 # ────────────────────────────────────────────────
 def get_status_from_color(bg):
     if not bg:
         return 0
 
-    r = bg.get("red", 0.0)
+    r = bg.get("red",   0.0)
     g = bg.get("green", 0.0)
-    b = bg.get("blue", 0.0)
+    b = bg.get("blue",  0.0)
 
-    # Зелёный (оплачено) — самый важный
-    if g > 0.58 and g > r + 0.12 and g > b + 0.12:
+    max_val = max(r, g, b, 0.001)
+
+    # Зелёный (самый частый в твоей таблице)
+    if g >= 0.58 and g / max_val >= 0.52 and r < 0.78 and b < 0.72:
         return 3
 
     # Оранжевый / жёлто-оранжевый
-    if r > 0.78 and g > 0.38 and b < 0.48 and r >= g:
+    if r >= 0.78 and g >= 0.48 and b <= 0.45 and r >= g * 1.05:
         return 2
 
-    # Синий / голубой
-    if b > 0.58 and b > r + 0.08 and b > g + 0.03:
+    # Синий / голубой (на всякий случай)
+    if b >= 0.58 and b / max_val >= 0.52 and r < 0.72 and g < 0.82:
         return 1
+
+    # Если цвет заметный, но не подошёл — считаем зелёным (fallback)
+    if max(r, g, b) > 0.35:
+        return 3
 
     return 0
 
@@ -77,9 +84,7 @@ def get_stats():
     if not values or len(values) < 2:
         return 0, 0, 0, 0
 
-    # fio_norm → лучший статус (1,2,3)
     by_fio = {}
-    # tg_id → лучший статус
     by_tg = {}
 
     for row_idx, row in enumerate(values[1:], start=2):
@@ -96,13 +101,13 @@ def get_stats():
             if tg_raw.isdigit() and len(tg_raw) >= 5:
                 tg_id = tg_raw
 
-        # Пробуем получить цвет — сначала из B, потом из A, потом из K
+        # Пробуем получить цвет — приоритет B (там ФИО и часто заливка)
         bg = None
-        for col in ["B", "A", "K"]:
+        for col in ['B', 'A', 'K', 'C', 'L']:
             try:
                 fmt = sheet.format(f"{col}{row_idx}")
                 bg_candidate = fmt.get("backgroundColor")
-                if bg_candidate:
+                if bg_candidate and any(v > 0 for v in bg_candidate.values()):
                     bg = bg_candidate
                     break
             except Exception:
@@ -112,34 +117,26 @@ def get_stats():
         if status == 0:
             continue
 
-        # Записываем в словарь по tg (если есть)
         if tg_id:
             prev = by_tg.get(tg_id, 0)
-            if status > prev:
-                by_tg[tg_id] = status
+            by_tg[tg_id] = max(prev, status)
 
-        # Записываем в словарь по fio (всегда)
         prev = by_fio.get(fio_norm, 0)
-        if status > prev:
-            by_fio[fio_norm] = status
+        by_fio[fio_norm] = max(prev, status)
 
-    # Объединяем — если человек есть и по tg и по fio → берём максимальный статус
-    all_people = {}
-
+    # Объединяем
+    all_statuses = {}
     for tg, st in by_tg.items():
-        all_people[("tg", tg)] = st
-
+        all_statuses[("tg", tg)] = st
     for fio, st in by_fio.items():
         key = ("fio", fio)
-        # Если уже есть по tg — не перезаписываем, если fio-статус хуже
-        if key not in all_people or st > all_people[key]:
-            all_people[key] = st
+        if key not in all_statuses or st > all_statuses[key]:
+            all_statuses[key] = st
 
-    # Подсчёт
-    blue   = sum(1 for s in all_people.values() if s == 1)
-    orange = sum(1 for s in all_people.values() if s == 2)
-    green  = sum(1 for s in all_people.values() if s == 3)
-    total  = len(all_people)
+    blue   = sum(1 for s in all_statuses.values() if s == 1)
+    orange = sum(1 for s in all_statuses.values() if s == 2)
+    green  = sum(1 for s in all_statuses.values() if s == 3)
+    total  = len(all_statuses)
 
     return total, blue, orange, green
 
@@ -173,7 +170,11 @@ def save_user_info(row: int, user_id: int, username: str | None):
 
 
 async def set_row_color(row: int, stage: int):
-    COLORS = {1: "#ADD8E6", 2: "#FFA500", 3: "#90EE90"}
+    COLORS = {
+        1: "#ADD8E6",   # светло-синий
+        2: "#FFA500",   # оранжевый
+        3: "#90EE90"    # светло-зелёный
+    }
     color = COLORS.get(stage)
     if not color or row < 1:
         return
@@ -201,13 +202,14 @@ async def cmd_start(message: types.Message):
 @dp.message(lambda m: m.text == "📊 Статистика")
 async def show_stats(message: types.Message):
     total, blue, orange, green = get_stats()
-    await message.answer(
+    text = (
         f"📊 Статистика:\n\n"
         f"Уникальных человек: {total}\n"
         f"Синий (регистрация): {blue}\n"
         f"Оранжевый (реквизиты): {orange}\n"
         f"Зелёный (оплачено): {green}"
     )
+    await message.answer(text)
 
 
 @dp.message()
@@ -308,7 +310,6 @@ async def process_callback(callback: types.CallbackQuery):
         await callback.answer()
         return
 
-    # Для 1 и 3
     sheet.update_cell(row, 11, STATUS_TEXTS.get(stage, ""))
     await set_row_color(row, stage)
 
