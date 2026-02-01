@@ -135,7 +135,7 @@ async def cmd_start(message: types.Message):
 
 @dp.message(lambda m: m.text == "📊 Статистика")
 async def show_stats(message: types.Message):
-    total_rows, unique, duplicates, blue, orange, green = get_stats()
+    total_rows, unique, duplicates, blue, orange, green, white = get_stats()
     text = (
         f"📊 Статистика:\n\n"
         f"Всего строк в таблице: {total_rows}\n"
@@ -143,14 +143,8 @@ async def show_stats(message: types.Message):
         f"Повторяющиеся: {duplicates}\n"
         f"Синий (регистрация): {blue}\n"
         f"Оранжевый (реквизиты): {orange}\n"
-        f"Зелёный (оплачено): {green}\n\n"
-        f"Сумма\n"
-        f"Уникальных человек: {unique}\n"
-        f"Повторяющиеся: {duplicates}\n"
-        f"Синий (регистрация): {blue}\n"
-        f"Оранжевый (реквизиты): {orange}\n"
         f"Зелёный (оплачено): {green}\n"
-        f"→ Должна соответствовать: {total_rows}"
+        f"Белый (без статуса): {white}"
     )
     await message.answer(text)
 
