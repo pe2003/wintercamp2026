@@ -51,13 +51,13 @@ def get_requisites_counts():
 def get_stats():
     values = sheet.get_all_values()
     if not values or len(values) < 2:
-        return 0, 0, 0, 0, 0, 0
+        return 0, 0, 0, 0, 0, 0, 0
     
     total_rows = len(values) - 1
     
     seen = set()
     duplicates = 0
-    blue = orange = green = 0
+    blue = orange = green = white = 0
     
     for row in values[1:]:
         if len(row) < 2:
@@ -72,17 +72,21 @@ def get_stats():
             continue
         seen.add(norm)
         
+        status = ""
         if len(row) > 10:
             status = row[10].strip().lower()
-            if status in ["прошёл регистрацию", "1", "синий"]:
-                blue += 1
-            elif status in ["выдал реквизиты", "2", "оранжевый"]:
-                orange += 1
-            elif status in ["оплатил", "3", "зелёный", "оплачено"]:
-                green += 1
+        
+        if status in ["прошёл регистрацию", "1", "синий", "прошел регистрацию", "прошла регистрацию", "прошёл регистрацию"]:
+            blue += 1
+        elif status in ["выдал реквизиты", "2", "оранжевый", "выданы реквизиты", "выдал", "выданы"]:
+            orange += 1
+        elif status in ["оплатил", "3", "зелёный", "оплачено", "оплачена", "оплачено", "оплатила"]:
+            green += 1
+        else:
+            white += 1
     
     unique = len(seen)
-    return total_rows, unique, duplicates, blue, orange, green
+    return total_rows, unique, duplicates, blue, orange, green, white
 
 stats_kb = ReplyKeyboardMarkup(
     keyboard=[[KeyboardButton(text="📊 Статистика")]],
