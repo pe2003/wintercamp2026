@@ -53,7 +53,6 @@ def get_stats():
     if not values or len(values) < 2:
         return 0, 0, 0, 0, 0, 0, 0
     
-    # Только строки, где есть ФИО (столбец B)
     data_rows = [row for row in values[1:] if len(row) > 1 and row[1].strip()]
     total_rows = len(data_rows)
     
@@ -71,18 +70,16 @@ def get_stats():
             continue
         seen.add(norm)
         
-        status = row[10].strip().lower() if len(row) > 10 else ""
+        status = (row[10].strip().lower() if len(row) > 10 else "").replace(" ", "")
         
-        status_clean = (row[10].strip().lower() if len(row) > 10 else "").replace(" ", "")
-
-if status_clean in ["прошёлрегистрацию", "прошелрегистрацию", "прошларегистрацию", "1", "синий"]:
-    blue += 1
-elif status_clean in ["выдалреквизиты", "выданыреквизиты", "2", "оранжевый"]:
-    orange += 1
-elif status_clean in ["оплатил", "оплачено", "оплачена", "3", "зелёный"]:
-    green += 1
-else:
-    white += 1  # "рег", "Рег" и пустые — белые
+        if status in ["прошёлрегистрацию", "прошелрегистрацию", "прошларегистрацию", "1", "синий"]:
+            blue += 1
+        elif status in ["выдалреквизиты", "выданыреквизиты", "2", "оранжевый"]:
+            orange += 1
+        elif status in ["оплатил", "оплачено", "оплачена", "оплатила", "3", "зелёный"]:
+            green += 1
+        else:
+            white += 1  # "рег", пусто и всё остальное — белый
     
     unique = len(seen)
     return total_rows, unique, duplicates, blue, orange, green, white
