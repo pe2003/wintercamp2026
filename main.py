@@ -53,14 +53,14 @@ def get_stats():
     if not values or len(values) < 2:
         return 0, 0, 0, 0, 0, 0, 0
     
-    total_rows = len(values) - 1
+    total_rows = sum(1 for row in values[1:] if len(row) >= 2 and row[1].strip())
     
     seen = set()
     duplicates = 0
     blue = orange = green = white = 0
     
     for row in values[1:]:
-        if len(row) < 2:
+        if len(row) < 2 or not row[1].strip():
             continue
             
         fio = row[1].strip().lower()
