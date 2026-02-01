@@ -47,31 +47,34 @@ def get_requisites_counts():
                 if 1 <= n <= REQUISITES_COUNT:
                     counts[n] += 1
     return counts
-
 def get_stats():
     values = sheet.get_all_values()
     if not values or len(values) < 2:
         return 0, 0, 0, 0, 0, 0, 0
-    
-    data_rows = [row for row in values[1:] if len(row) > 1 and row[1].strip()]
-    total_rows = len(data_rows)
-    
+
+    data_rows = values[1:]  # ← убираем жёсткую фильтрацию
+
+    total_rows = len([r for r in data_rows if len(r) > 1 and r[1].strip()])  # только с непустым ФИО
+
     seen = set()
     duplicates = 0
     blue = orange = green = white = 0
-    
+
     for row in data_rows:
+        if len(row) <= 1 or not row[1].strip():
+            continue
+
         fio = row[1].strip().lower()
         words = fio.replace('.', '').replace('-', '').split()
         norm = ' '.join(words[:3])
-        
+
         if norm in seen:
             duplicates += 1
             continue
         seen.add(norm)
-        
+
         status = (row[10].strip().lower() if len(row) > 10 else "").replace(" ", "")
-        
+
         if status in ["прошёлрегистрацию", "прошелрегистрацию", "прошларегистрацию", "1", "синий"]:
             blue += 1
         elif status in ["выдалреквизиты", "выданыреквизиты", "2", "оранжевый"]:
@@ -79,8 +82,8 @@ def get_stats():
         elif status in ["оплатил", "оплачено", "оплачена", "оплатила", "3", "зелёный"]:
             green += 1
         else:
-            white += 1  # "рег", пусто и всё остальное — белый
-    
+            white += 1
+
     unique = len(seen)
     return total_rows, unique, duplicates, blue, orange, green, white
 
