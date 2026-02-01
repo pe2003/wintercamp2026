@@ -127,7 +127,7 @@ def save_user_info(row: int, user_id: int, username: str | None):
 
 
 async def set_row_color(row: int, stage: int):
-    COLORS = {1: "#ADD8E6", 2: "#FFA500", 3: "#90EE90"}
+    COLORS = {1: "#ADD8E6", 2: "#FFA500", 3: "#00FF00"}
     color = COLORS.get(stage)
     if not color or row < 1: return
     r = int(color[1:3], 16) / 255.0
